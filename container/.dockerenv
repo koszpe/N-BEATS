@@ -1,0 +1,2 @@
+IMAGE_NAME=koszpe/nbeats
+REPO_NAME=nbeats  # This affect the folder structure created by docker_run.sh script
