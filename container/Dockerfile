@@ -1,41 +1,45 @@
-FROM pytorch/pytorch
+FROM nvidia/cuda:10.2-cudnn7-devel
 
-# Install some basic apt packages
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq
-RUN    DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -qy \
-    sudo vim nano git curl wget mc less \
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system packages
+RUN apt-get update  -y --fix-missing && \
+    apt-get install -y --no-install-recommends \
+    software-properties-common \
+    wget \
+    curl \
+    unrar \
+    unzip \
+    libnvinfer6=6.0.1-1+cuda10.2 \
+    libnvinfer-dev=6.0.1-1+cuda10.2 \
+    libnvinfer-plugin6=6.0.1-1+cuda10.2 \
     openssh-server \
-    ffmpeg libsm6 libxext6 enchant
+    git && \
+    apt-get clean -y
+
+# Python
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash Miniconda3-latest-Linux-x86_64.sh -p /miniconda -b  && \
+    rm -rf Miniconda3-latest-Linux-x86_64.sh
+
+ENV PATH=/miniconda/bin:${PATH}
+RUN conda update -y conda
+
+RUN conda install -c anaconda -y \
+      python=3.7.2 \
+      pip
+
+# JupyterLab
+RUN conda install -c conda-forge jupyterlab
+
+# Main frameworks
+RUN pip install torch
+
+# Install requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
 
 RUN echo "%docker  ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/inside_sudoers
-
-RUN pip install tqdm dotmap matplotlib opencv-python pandas numpy jupyter sklearn tensorboard pudb pyenchant openpyxl tabulate shap captum
-
-################################
-# install pyodb and dependencies
-RUN DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -qy  \
-    g++ gcc lsb-core unixodbc-dev gnupg
-
-RUN pip install pyodbc
-
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-RUN curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list
-
-RUN DEBIAN_FRONTEND=noninteractive apt-get update -qq
-RUN DEBIAN_FRONTEND=noninteractive ACCEPT_EULA=Y apt-get install -y \
-    mssql-tools18 msodbcsql18
-
-ENV PATH="$PATH:/opt/mssql-tools18/bin"
-################################
-
-
-ENV PYTHONPATH=/workspace
-WORKDIR /workspace
-
-# clean apt meta
-RUN apt-get clean -qq && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm -rf /tmp/*
 
 COPY entry.sh /entry.sh
 RUN chmod +x /entry.sh

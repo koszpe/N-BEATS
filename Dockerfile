@@ -35,5 +35,5 @@ RUN conda install -c conda-forge jupyterlab
 RUN pip install torch
 
 # Install requirements
-COPY requirements.txt /tmp/requirements.txt
+COPY container/requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
